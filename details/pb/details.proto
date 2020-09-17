@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pb;
+
+message Book {
+    string name = 1;
+}
+
+message Detail {
+    int64 price = 1;
+    string genre = 2;
+}
+
+service DetailService {
+    rpc details(Book) returns (Detail) {};
+}

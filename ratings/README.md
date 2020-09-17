@@ -1,0 +1,1 @@
+Run ```/bin/sh build.sh``` to build docker image running ratings microservice
