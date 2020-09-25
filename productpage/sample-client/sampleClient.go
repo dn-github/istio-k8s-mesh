@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/dn-github/istio-k8s-mesh/productpage/pb"
@@ -31,15 +34,12 @@ func main() {
 		Name: "The Book Thief",
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
 	sleepTime := time.Second / time.Duration(qps)
 
 	tasks := make([]async.Task, concurrency)
 
 	for i := 0; i < concurrency; i++ {
-		tasks[i] = async.Repeat(ctx, sleepTime, func(ctx context.Context) (interface{}, error) {
+		tasks[i] = async.Repeat(context.Background(), sleepTime, func(ctx context.Context) (interface{}, error) {
 			res, err := client.Product(ctx, req)
 			if err != nil {
 				log.Printf("error while calling gRPC: %v", err)
@@ -49,6 +49,15 @@ func main() {
 			return nil, nil
 		})
 	}
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r- Ctrl+C pressed in Terminal")
+		async.CancelAll(tasks)
+		os.Exit(0)
+	}()
 
 	async.WaitAll(tasks)
 }
